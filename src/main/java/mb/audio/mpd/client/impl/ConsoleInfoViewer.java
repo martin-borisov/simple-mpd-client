@@ -9,8 +9,13 @@ import mb.audio.mpd.client.InfoViewer;
 public class ConsoleInfoViewer extends InfoViewer {
 
     @Override
-    public void playbackStarted(MPDPlaylistSong song) {
-        System.out.println(format("Playback started > ''{0}''", song.getTitle()));
+    public void songChanged(MPDPlaylistSong song) {
+        System.out.println(format("Song changed > ''{0}''", song.getTitle()));
+    }
+
+    @Override
+    public void playbackStarted() {
+        System.out.println("Playback started");
     }
 
     @Override
