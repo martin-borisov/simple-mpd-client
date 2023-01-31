@@ -12,6 +12,12 @@ public class Args {
     
     @Parameter(names = "--password")
     private String password;
+    
+    @Parameter(names = "--musicpath")
+    private String musicPath;
+    
+    @Parameter(names = "--viewer")
+    private String viewer;
 
     public String getHost() {
         return host;
@@ -35,5 +41,21 @@ public class Args {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getMusicPath() {
+        return musicPath;
+    }
+
+    public void setMusicPath(String musicPath) {
+        this.musicPath = musicPath;
+    }
+
+    public String getViewer() {
+        return viewer;
+    }
+
+    public void setViewer(String viewer) {
+        this.viewer = viewer;
     }
 }

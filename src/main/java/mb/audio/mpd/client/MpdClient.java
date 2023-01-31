@@ -1,5 +1,7 @@
 package mb.audio.mpd.client;
 
+import static java.text.MessageFormat.format;
+
 import org.bff.javampd.monitor.StandAloneMonitor;
 import org.bff.javampd.player.Player.Status;
 import org.bff.javampd.server.MPD;
@@ -23,33 +25,53 @@ public class MpdClient {
         MpdClient client;
         int port = arg.getPort() > 0 ? arg.getPort() : DEFAULT_PORT;
         if(arg.getPassword() != null) {
-            client = new MpdClient(arg.getHost(), port, arg.getPassword());
+            client = new MpdClient(arg.getHost(), port, arg.getPassword(), arg.getMusicPath());
         } else {
-            client = new MpdClient(arg.getHost(), port);
+            client = new MpdClient(arg.getHost(), port, arg.getMusicPath());
         }
-        client.setViewer(new SwingInfoViewer());
+        
+        InfoViewer viewer = null;
+        if(arg.getViewer() != null) {
+            try {
+                @SuppressWarnings("unchecked")
+                Class<InfoViewer> viewerClass = (Class<InfoViewer>) Class.forName(arg.getViewer());
+                viewer = viewerClass.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                throw new IllegalArgumentException(format("Loading viewer class ''{0}'' failed", arg.getViewer()));
+            }  
+        } else {
+            viewer = new SwingInfoViewer();
+        }
+        client.setViewer(viewer);
     }
     
     private MPD mpd;
     private InfoViewer viewer;
-
+    private String musicPath;
+    
     public MpdClient(String host, int port) {
-        this(host, port, null);
+        this(host, port, null, null);
     }
 
-    public MpdClient(String host, int port, String password) {
+    public MpdClient(String host, int port, String musicPath) {
+        this(host, port, null, musicPath);
+    }
+
+    public MpdClient(String host, int port, String password, String musicPath) {
         mpd = MPD.builder().server(host).port(port).password(password).timeout(CONNECTION_TIMEOUT_MS).build();
         if(!mpd.isConnected()) {
             throw new RuntimeException("Failed to connect to MPD server");
         }
         
         viewer = new InfoViewer() {};
+        viewer.setMusicPath(this.musicPath = musicPath);
         setupListeners();
         initState();
     }
 
     public void setViewer(InfoViewer viewer) {
         this.viewer = viewer;
+        this.viewer.setMusicPath(musicPath);
         initState();
     }
     
@@ -122,7 +144,5 @@ public class MpdClient {
         default:
             break;
         }
-        
     }
-
 }

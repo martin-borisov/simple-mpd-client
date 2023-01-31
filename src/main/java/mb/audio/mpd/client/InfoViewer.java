@@ -4,6 +4,9 @@ import org.bff.javampd.playlist.MPDPlaylistSong;
 
 public abstract class InfoViewer {
     
+    public void setMusicPath(String path) {
+    }
+    
     public void playbackStarted() {
     }
     
