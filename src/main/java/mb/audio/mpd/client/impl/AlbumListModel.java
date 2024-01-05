@@ -121,6 +121,7 @@ public class AlbumListModel extends AbstractListModel<Album> {
                     mdb.getAlbumDatabase().findAlbum(album.getName()).stream().findFirst().ifPresent(a -> {
                         album.setArtist(a.getAlbumArtist());
                         a.getDates().stream().findFirst().ifPresent(d -> album.setYear(d));
+                        album.setGenre(a.getGenres().stream().collect(Collectors.joining(", ")));
                     });
                     
                     LOG.log(Level.FINE, "Fetching album art of album ''{0}''", album.getName());
@@ -145,7 +146,7 @@ public class AlbumListModel extends AbstractListModel<Album> {
 
     static class Album {
         
-        private String name, artist, year;
+        private String name, artist, year, genre;
         private Icon icon;
         
         public Album(String name, Icon icon) {
@@ -155,10 +156,11 @@ public class AlbumListModel extends AbstractListModel<Album> {
             this.year = "";
         }
 
-        public Album(String name, String artist, String year, Icon icon) {
+        public Album(String name, String artist, String year, String genre, Icon icon) {
             this.name = name;
             this.artist = artist;
             this.year = year;
+            this.genre = genre;
             this.icon = icon;
         }
 
@@ -192,6 +194,14 @@ public class AlbumListModel extends AbstractListModel<Album> {
 
         public void setYear(String year) {
             this.year = year;
+        }
+
+        public String getGenre() {
+            return genre;
+        }
+
+        public void setGenre(String genre) {
+            this.genre = genre;
         }
     }
 }

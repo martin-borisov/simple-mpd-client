@@ -211,7 +211,7 @@ public class SwingInfoViewer extends InfoViewer {
             }
         });
         albumList.setPrototypeCellValue(new Album("This is an album with long title", 
-                "Dummy", "2000", AlbumListModel.DEFAULT_ALBUM_ICON)); // This provides a huge performance boost in album list loading
+                "Dummy", "2000", "Rock", AlbumListModel.DEFAULT_ALBUM_ICON)); // This provides a huge performance boost in album list loading
         JScrollPane albumListScrollPane = new JScrollPane(albumList);
         libraryPanel.add(albumListScrollPane);
         

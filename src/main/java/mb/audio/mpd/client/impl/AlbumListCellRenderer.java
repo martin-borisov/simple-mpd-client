@@ -23,8 +23,18 @@ public class AlbumListCellRenderer extends JLabel implements ListCellRenderer<Al
         if(!album.getArtist().isBlank()) {
             buf.append("<p>").append(album.getArtist()).append("</p>");
         }
-        if(!album.getYear().isBlank()) {
-            buf.append("<p>").append(album.getYear()).append("</p>");
+        if(!album.getYear().isBlank() || !album.getGenre().isBlank()) {
+            buf.append("<p>");
+            if(!album.getYear().isBlank()) {
+                buf.append(album.getYear());
+            }
+            if(!album.getGenre().isBlank()) {
+                buf.append(" / ").append(album.getGenre());
+            }
+            buf.append("</p>");
+        }
+        if(!album.getGenre().isBlank()) {
+            buf.append("<p>").append(album.getGenre()).append("</p>");
         }
         buf.append("</body></html>");
         
