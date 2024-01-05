@@ -18,7 +18,7 @@ public class ArtworkRetriever {
         
         try {
             URL url = new URL(path + "cover.jpg");
-            LOG.info(format("Trying to fetch cover image at: {0}", url));
+            LOG.fine(format("Trying to fetch cover image at: {0}", url));
             
             if(path.startsWith("file")) {
                 

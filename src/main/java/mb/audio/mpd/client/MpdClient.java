@@ -2,11 +2,17 @@ package mb.audio.mpd.client;
 
 import static java.text.MessageFormat.format;
 
+import javax.swing.UIManager;
+
+import org.bff.javampd.database.MusicDatabase;
 import org.bff.javampd.monitor.StandAloneMonitor;
+import org.bff.javampd.player.Player;
 import org.bff.javampd.player.Player.Status;
+import org.bff.javampd.playlist.Playlist;
 import org.bff.javampd.server.MPD;
 
 import com.beust.jcommander.JCommander;
+import com.formdev.flatlaf.FlatDarkLaf;
 
 import mb.audio.mpd.client.impl.SwingInfoViewer;
 
@@ -20,6 +26,10 @@ public class MpdClient {
         // Parse command
         Args arg = new Args();
         JCommander.newBuilder().addObject(arg).build().parse(args);
+        
+        // Custom LaF
+        FlatDarkLaf.setup();
+        UIManager.put("Button.arc", 999);
         
         // Create client
         MpdClient client;
@@ -48,6 +58,9 @@ public class MpdClient {
     private MPD mpd;
     private InfoViewer viewer;
     private String musicPath;
+    private Player player;
+    private MusicDatabase musicDatabase;
+    private Playlist playlist;
     
     public MpdClient(String host, int port) {
         this(host, port, null, null);
@@ -62,16 +75,19 @@ public class MpdClient {
         if(!mpd.isConnected()) {
             throw new RuntimeException("Failed to connect to MPD server");
         }
+
+        this.musicPath = musicPath;
+        this.player = mpd.getPlayer();
+        this.musicDatabase = mpd.getMusicDatabase();
+        this.playlist = mpd.getPlaylist();
         
         viewer = new InfoViewer() {};
-        viewer.setMusicPath(this.musicPath = musicPath);
         setupListeners();
         initState();
     }
 
     public void setViewer(InfoViewer viewer) {
         this.viewer = viewer;
-        this.viewer.setMusicPath(musicPath);
         initState();
     }
     
@@ -120,6 +136,12 @@ public class MpdClient {
     }
     
     private void initState() {
+        
+        // Inject properties
+        viewer.setMusicPath(musicPath);
+        viewer.setPlayer(player);
+        viewer.setMusicDatabase(musicDatabase);
+        viewer.setPlaylist(playlist);
         
         // Set song
         if(mpd.getPlaylist().getCurrentSong() != null) {
