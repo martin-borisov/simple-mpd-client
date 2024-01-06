@@ -1,5 +1,6 @@
 package mb.audio.mpd.client.impl;
 
+import com.formdev.flatlaf.FlatDarkLaf;
 import java.awt.Canvas;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -28,6 +29,7 @@ import javax.swing.JSlider;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
+import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 
 import org.bff.javampd.database.MusicDatabase;
@@ -62,6 +64,11 @@ public class SwingInfoViewer extends InfoViewer {
     private long elapsedTimeCounter;
     
     public SwingInfoViewer() {
+        
+        // Custom LaF
+        FlatDarkLaf.setup();
+        UIManager.put("Button.arc", 999);
+        
         setupAndShow();
     }
     

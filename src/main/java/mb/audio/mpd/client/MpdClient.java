@@ -2,8 +2,6 @@ package mb.audio.mpd.client;
 
 import static java.text.MessageFormat.format;
 
-import javax.swing.UIManager;
-
 import org.bff.javampd.database.MusicDatabase;
 import org.bff.javampd.monitor.StandAloneMonitor;
 import org.bff.javampd.player.Player;
@@ -12,8 +10,6 @@ import org.bff.javampd.playlist.Playlist;
 import org.bff.javampd.server.MPD;
 
 import com.beust.jcommander.JCommander;
-import com.formdev.flatlaf.FlatDarkLaf;
-
 import mb.audio.mpd.client.impl.SwingInfoViewer;
 
 public class MpdClient {
@@ -26,10 +22,6 @@ public class MpdClient {
         // Parse command
         Args arg = new Args();
         JCommander.newBuilder().addObject(arg).build().parse(args);
-        
-        // Custom LaF
-        FlatDarkLaf.setup();
-        UIManager.put("Button.arc", 999);
         
         // Create client
         MpdClient client;
