@@ -154,14 +154,14 @@ public class AlbumListModel extends AbstractListModel<Album> {
             this.icon = icon;
             this.artist = "";
             this.year = "";
+            this.genre = "";
         }
 
         public Album(String name, String artist, String year, String genre, Icon icon) {
-            this.name = name;
+            this(name, icon);
             this.artist = artist;
             this.year = year;
             this.genre = genre;
-            this.icon = icon;
         }
 
         public String getName() {
