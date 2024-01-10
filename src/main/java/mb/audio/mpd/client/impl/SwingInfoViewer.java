@@ -336,7 +336,7 @@ public class SwingInfoViewer extends InfoViewer {
     
     private void resizeLabel(JLabel label) {
         int maxFittingFontSize = SwingGraphicsUtils.getMaxFittingFontSize(label.getGraphics(),
-                label.getFont(), label.getText(), (int) (label.getWidth() / 1.2), (int) (label.getHeight() / 1.2));
+                label.getFont(), label.getText(), (int) (label.getHeight() / 3));
         label.setFont(new Font(label.getFont().getName(), label.getFont().getStyle(), maxFittingFontSize));
     }
     
