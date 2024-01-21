@@ -23,6 +23,9 @@ public class MpdClient {
         Args arg = new Args();
         JCommander.newBuilder().addObject(arg).build().parse(args);
         
+        // Set global config
+        GlobalConfig.setTouchscreen(arg.isTouchscreen());
+        
         // Create client
         MpdClient client;
         int port = arg.getPort() > 0 ? arg.getPort() : DEFAULT_PORT;

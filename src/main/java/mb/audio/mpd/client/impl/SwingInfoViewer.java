@@ -1,11 +1,12 @@
 package mb.audio.mpd.client.impl;
 
-import com.formdev.flatlaf.FlatDarkLaf;
+import static mb.audio.mpd.client.util.SwingGraphicsUtils.createResizableLabel;
+import static mb.audio.mpd.client.util.SwingGraphicsUtils.resizeLabel;
+
 import java.awt.Canvas;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -39,9 +40,11 @@ import org.bff.javampd.song.MPDSong;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.swing.FontIcon;
 
+import com.formdev.flatlaf.FlatDarkLaf;
+
+import mb.audio.mpd.client.GlobalConfig;
 import mb.audio.mpd.client.InfoViewer;
 import mb.audio.mpd.client.impl.AlbumListModel.Album;
-import mb.audio.mpd.client.util.SwingGraphicsUtils;
 import net.miginfocom.swing.MigLayout;
 
 public class SwingInfoViewer extends InfoViewer {
@@ -68,6 +71,10 @@ public class SwingInfoViewer extends InfoViewer {
         // Custom LaF
         FlatDarkLaf.setup();
         UIManager.put("Button.arc", 999);
+        
+        if(GlobalConfig.isTouchscreen()) {
+            UIManager.put("ScrollBar.width", 16);
+        }
         
         setupAndShow();
     }
@@ -213,6 +220,10 @@ public class SwingInfoViewer extends InfoViewer {
         albumList.setPrototypeCellValue(new Album("This is an album with long title", 
                 "Dummy", "2000", "Rock", AlbumListModel.DEFAULT_ALBUM_ICON)); // This provides a huge performance boost in album list loading
         JScrollPane albumListScrollPane = new JScrollPane(albumList);
+        
+        if(GlobalConfig.isTouchscreen()) {
+            albumListScrollPane.putClientProperty("JScrollBar.showButtons", true);
+        }
         libraryPanel.add(albumListScrollPane);
         
         /* Time panel */
@@ -254,7 +265,7 @@ public class SwingInfoViewer extends InfoViewer {
         playButton = new JButton(icon = FontIcon.of(FontAwesomeSolid.PLAY));
         playButton.addActionListener(e -> togglePlayback());
         buttonsPanel.add(playButton);
-        createStateLabelBlinkTimer();
+        createPlayButtonBlinkTimer();
         
         nextButton = new JButton(FontIcon.of(FontAwesomeSolid.FAST_FORWARD));
         nextButton.addActionListener(e -> player.playNext());
@@ -267,8 +278,7 @@ public class SwingInfoViewer extends InfoViewer {
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE); 
         
         // Full screen, Linux only
-        String os = System.getProperty("os.name");
-        if(os != null && os.toLowerCase().contains("linux")) {
+        if(GlobalConfig.isTouchscreen()) {
         
             // MAximize and remove windows frame
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH); 
@@ -281,6 +291,10 @@ public class SwingInfoViewer extends InfoViewer {
         // Show
         frame.setSize(640, 480);
         frame.setVisible(true);
+        
+        // NB: This properly resizes the buttons on start,
+        // which might be a workaround for a bug in the layouts
+        panelSwitchButton.invalidate();
     }
     
     private void setupListeners() {
@@ -322,25 +336,7 @@ public class SwingInfoViewer extends InfoViewer {
         resizeLabel(albumLabel);
     }
     
-    private JLabel createResizableLabel() {
-        JLabel label = new JLabel();
-        label.setVerticalAlignment(SwingConstants.TOP);
-        label.setMinimumSize(new Dimension(10, 10)); // This is needed for proper resizing
-        label.addComponentListener(new ComponentAdapter() {
-            public void componentResized(ComponentEvent e) {
-                resizeLabel(label);
-            }
-        });
-        return label;
-    }
-    
-    private void resizeLabel(JLabel label) {
-        int maxFittingFontSize = SwingGraphicsUtils.getMaxFittingFontSize(label.getGraphics(),
-                label.getFont(), label.getText(), (int) (label.getHeight() / 3));
-        label.setFont(new Font(label.getFont().getName(), label.getFont().getStyle(), maxFittingFontSize));
-    }
-    
-    private void createStateLabelBlinkTimer() {
+    private void createPlayButtonBlinkTimer() {
         playButtonBlinkTimer = new Timer(100, (event) -> {
             Color col = icon.getIconColor();
             col = new Color(col.getRed(), col.getGreen(), col.getBlue(),
@@ -349,7 +345,6 @@ public class SwingInfoViewer extends InfoViewer {
             playButton.repaint();
         });
     }
-    
     
     private void startPlayButtonBlink() {
         playButtonBlinkTimer.restart();

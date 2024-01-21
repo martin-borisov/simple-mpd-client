@@ -18,6 +18,9 @@ public class Args {
     
     @Parameter(names = "--viewer")
     private String viewer;
+    
+    @Parameter(names = "--touchscreen")
+    private boolean touchscreen;
 
     public String getHost() {
         return host;
@@ -57,5 +60,13 @@ public class Args {
 
     public void setViewer(String viewer) {
         this.viewer = viewer;
+    }
+
+    public boolean isTouchscreen() {
+        return touchscreen;
+    }
+
+    public void setTouchscreen(boolean touchscreen) {
+        this.touchscreen = touchscreen;
     }
 }
