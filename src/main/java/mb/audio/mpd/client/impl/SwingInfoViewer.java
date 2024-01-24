@@ -41,10 +41,12 @@ import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.swing.FontIcon;
 
 import com.formdev.flatlaf.FlatDarkLaf;
-
+import com.sun.source.tree.WhileLoopTree;
+import java.awt.GridLayout;
 import mb.audio.mpd.client.GlobalConfig;
 import mb.audio.mpd.client.InfoViewer;
 import mb.audio.mpd.client.impl.AlbumListModel.Album;
+import mb.audio.mpd.client.util.SwingGraphicsUtils;
 import net.miginfocom.swing.MigLayout;
 
 public class SwingInfoViewer extends InfoViewer {
@@ -132,11 +134,11 @@ public class SwingInfoViewer extends InfoViewer {
         
         // Reset and update song time
         SwingUtilities.invokeLater(() -> {
-            elapsedTimeLabel.setText(secondsToTimeText(player.getElapsedTime()));
+            elapsedTimeLabel.setText(SwingGraphicsUtils.secondsToTimeText(player.getElapsedTime()));
             timeSlider.setMinimum(0);
             timeSlider.setMaximum(song.getLength());
             timeSlider.setValue((int) player.getElapsedTime());
-            totalTimeLabel.setText(secondsToTimeText(song.getLength()));
+            totalTimeLabel.setText(SwingGraphicsUtils.secondsToTimeText(song.getLength()));
         });
     }
 
@@ -146,8 +148,6 @@ public class SwingInfoViewer extends InfoViewer {
     }
     
     private void setupAndShow() {
-        
-        // Create and layout controls
         frame = new JFrame("MPD Viewer");
         
         JPanel rootPanel = new JPanel(new MigLayout("fill, wrap", "[fill]", "[fill, 100%][][]"));
@@ -207,7 +207,8 @@ public class SwingInfoViewer extends InfoViewer {
         
         /* Library panel */
         JPanel libraryPanel = new JPanel(new MigLayout(
-                "insets 0, fill, wrap", "[fill]", "[fill, 100%]"));
+                "insets 0, fill, wrap", 
+                GlobalConfig.isTouchscreen() ? "[fill, 90%][fill, 20%]" : "[fill]", "[fill, 100%]"));
         switchPanel.add(libraryPanel, LIBRARY_PANEL_ID);
         
         albumList = new JList<AlbumListModel.Album>(new AlbumListModel());
@@ -220,11 +221,29 @@ public class SwingInfoViewer extends InfoViewer {
         albumList.setPrototypeCellValue(new Album("This is an album with long title", 
                 "Dummy", "2000", "Rock", AlbumListModel.DEFAULT_ALBUM_ICON)); // This provides a huge performance boost in album list loading
         JScrollPane albumListScrollPane = new JScrollPane(albumList);
+        libraryPanel.add(albumListScrollPane);
         
         if(GlobalConfig.isTouchscreen()) {
-            albumListScrollPane.putClientProperty("JScrollBar.showButtons", true);
+            albumListScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+            
+            JPanel scrollButtonsPanel = new JPanel(new GridLayout(2, 1, 10, 10));
+            libraryPanel.add(scrollButtonsPanel);
+            
+            JButton upButton = new JButton(FontIcon.of(FontAwesomeSolid.ARROW_UP));
+            upButton.putClientProperty("JButton.buttonType", "square");
+            SwingGraphicsUtils.makeButtonHoldable(upButton, () -> {
+                albumList.ensureIndexIsVisible(albumList.getFirstVisibleIndex() - 1);
+            });
+            scrollButtonsPanel.add(upButton);
+            
+            JButton downButton = new JButton(FontIcon.of(FontAwesomeSolid.ARROW_DOWN));
+            downButton.putClientProperty("JButton.buttonType", "square");
+            SwingGraphicsUtils.makeButtonHoldable(downButton, () -> {
+                albumList.ensureIndexIsVisible(albumList.getLastVisibleIndex() + 1);
+            });
+            scrollButtonsPanel.add(downButton);
         }
-        libraryPanel.add(albumListScrollPane);
+
         
         /* Time panel */
         JPanel timePanel = new JPanel(new MigLayout("insets 0, fill", "[fill][fill, 100%][fill]", "[]"));
@@ -328,11 +347,11 @@ public class SwingInfoViewer extends InfoViewer {
     }
     
     private void updateSongLabels(String title, String artist, String album) {
-        titleLabel.setText(title);
+        titleLabel.setText("'" + title + "'");
         resizeLabel(titleLabel);
-        artistLabel.setText(artist);
+        artistLabel.setText("By " + artist);
         resizeLabel(artistLabel);
-        albumLabel.setText(album);
+        albumLabel.setText("Album '" + album + "'");
         resizeLabel(albumLabel);
     }
     
@@ -357,7 +376,7 @@ public class SwingInfoViewer extends InfoViewer {
     private void createTimePollTimer() {
         timePollTimer = new Timer(1000, (event) -> {
             
-            elapsedTimeLabel.setText(secondsToTimeText(elapsedTimeCounter));
+            elapsedTimeLabel.setText(SwingGraphicsUtils.secondsToTimeText(elapsedTimeCounter));
             timeSlider.setValue((int) elapsedTimeCounter);
             elapsedTimeCounter++;
             
@@ -397,17 +416,7 @@ public class SwingInfoViewer extends InfoViewer {
         player.play();
     }
     
-    /* Public Utils */
-    
-    public static String secondsToTimeText(long seconds) {
-        long hrs = (seconds / 60) / 60;
-        long min = (seconds / 60) % 60;
-        long sec = seconds % 60;
-        return MessageFormat.format("{0}{1}:{2}{3}:{4}{5}", 
-                hrs < 10 ? "0" : "", hrs, 
-                min < 10 ? "0" : "", min, 
-                sec < 10 ? "0" : "", sec);
-    }
+    /* Utils */
     
     public static BufferedImage fetchArtwork(String musicPath, MPDSong song) {
         

@@ -6,9 +6,14 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.text.MessageFormat;
+import javax.swing.JButton;
 
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 
 public class SwingGraphicsUtils {
     
@@ -94,4 +99,46 @@ public class SwingGraphicsUtils {
                 label.getFont(), label.getText(), (int) (label.getHeight() / 3));
         label.setFont(new Font(label.getFont().getName(), label.getFont().getStyle(), maxFittingFontSize));
     }
-}
+    
+    /**
+     * Makes passed JButton holdable
+     */
+    public static void makeButtonHoldable(JButton button, Runnable func) {
+        button.addMouseListener(new MouseAdapter() {
+            private boolean pressed;
+
+            @Override
+            public void mousePressed(MouseEvent event) {
+                pressed = true;
+                new Thread(() -> {
+                    while (pressed) {
+                        try {
+                            Thread.sleep(250);
+                        } catch (InterruptedException e) {
+                            // Ignore
+                        }
+                        SwingUtilities.invokeLater(func);
+                    }
+                }).start();
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent event) {
+                pressed = false;
+            }
+        });
+    }
+    
+    /**
+     * Converts time in seconds to formatted time string
+     */
+    public static String secondsToTimeText(long seconds) {
+        long hrs = (seconds / 60) / 60;
+        long min = (seconds / 60) % 60;
+        long sec = seconds % 60;
+        return MessageFormat.format("{0}{1}:{2}{3}:{4}{5}", 
+                hrs < 10 ? "0" : "", hrs, 
+                min < 10 ? "0" : "", min, 
+                sec < 10 ? "0" : "", sec);
+    }
+} 
