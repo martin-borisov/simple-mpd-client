@@ -105,7 +105,11 @@ public class SwingGraphicsUtils {
      */
     public static void makeButtonHoldable(JButton button, Runnable func) {
         button.addMouseListener(new MouseAdapter() {
+            private final static int INIT_WAIT_TIME_MS = 250;
+            private final static int SECONDARY_WAIT_TIME_MS = 100;
+            private final static int TIME_SWITCH_LIMIT_MS = 3000;
             private boolean pressed;
+            private long counter;
 
             @Override
             public void mousePressed(MouseEvent event) {
@@ -113,11 +117,13 @@ public class SwingGraphicsUtils {
                 new Thread(() -> {
                     while (pressed) {
                         try {
-                            Thread.sleep(250);
+                            Thread.sleep(counter < TIME_SWITCH_LIMIT_MS ?  
+                                    INIT_WAIT_TIME_MS : SECONDARY_WAIT_TIME_MS);
                         } catch (InterruptedException e) {
                             // Ignore
                         }
                         SwingUtilities.invokeLater(func);
+                        counter += INIT_WAIT_TIME_MS;
                     }
                 }).start();
             }
@@ -125,6 +131,7 @@ public class SwingGraphicsUtils {
             @Override
             public void mouseReleased(MouseEvent event) {
                 pressed = false;
+                counter = 0;
             }
         });
     }
