@@ -14,7 +14,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
-import java.text.MessageFormat;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,7 +40,6 @@ import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.swing.FontIcon;
 
 import com.formdev.flatlaf.FlatDarkLaf;
-import com.sun.source.tree.WhileLoopTree;
 import java.awt.GridLayout;
 import mb.audio.mpd.client.GlobalConfig;
 import mb.audio.mpd.client.MpdControlSurface;
@@ -229,21 +227,22 @@ public class SwingControlSurface extends MpdControlSurface {
             JPanel scrollButtonsPanel = new JPanel(new GridLayout(2, 1, 10, 10));
             libraryPanel.add(scrollButtonsPanel);
             
-            JButton upButton = new JButton(FontIcon.of(FontAwesomeSolid.ARROW_UP));
+            JButton upButton = SwingGraphicsUtils.createButtonWithResizableIcon(
+                    FontIcon.of(FontAwesomeSolid.ARROW_UP));
             upButton.putClientProperty("JButton.buttonType", "square");
             SwingGraphicsUtils.makeButtonHoldable(upButton, () -> {
                 albumList.ensureIndexIsVisible(albumList.getFirstVisibleIndex() - 1);
             });
             scrollButtonsPanel.add(upButton);
             
-            JButton downButton = new JButton(FontIcon.of(FontAwesomeSolid.ARROW_DOWN));
+            JButton downButton = SwingGraphicsUtils.createButtonWithResizableIcon(
+                    FontIcon.of(FontAwesomeSolid.ARROW_DOWN));
             downButton.putClientProperty("JButton.buttonType", "square");
             SwingGraphicsUtils.makeButtonHoldable(downButton, () -> {
                 albumList.ensureIndexIsVisible(albumList.getLastVisibleIndex() + 1);
             });
             scrollButtonsPanel.add(downButton);
         }
-
         
         /* Time panel */
         JPanel timePanel = new JPanel(new MigLayout("insets 0, fill", "[fill][fill, 100%][fill]", "[]"));

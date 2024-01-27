@@ -14,6 +14,7 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import org.kordamp.ikonli.swing.FontIcon;
 
 public class SwingGraphicsUtils {
     
@@ -147,5 +148,18 @@ public class SwingGraphicsUtils {
                 hrs < 10 ? "0" : "", hrs, 
                 min < 10 ? "0" : "", min, 
                 sec < 10 ? "0" : "", sec);
+    }
+    
+    /**
+     * Creates a button with auto-resizing icon
+     */
+    public static JButton createButtonWithResizableIcon(FontIcon icon) {
+        JButton button = new JButton(icon);
+        button.addComponentListener(new ComponentAdapter() {
+            public void componentResized(ComponentEvent e) {
+                icon.setIconSize(button.getWidth() / 2);
+            }
+        });
+        return button;
     }
 } 
