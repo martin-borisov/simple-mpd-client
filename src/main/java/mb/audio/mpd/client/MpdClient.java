@@ -10,7 +10,7 @@ import org.bff.javampd.playlist.Playlist;
 import org.bff.javampd.server.MPD;
 
 import com.beust.jcommander.JCommander;
-import mb.audio.mpd.client.impl.SwingInfoViewer;
+import mb.audio.mpd.client.impl.SwingControlSurface;
 
 public class MpdClient {
     
@@ -35,23 +35,23 @@ public class MpdClient {
             client = new MpdClient(arg.getHost(), port, arg.getMusicPath());
         }
         
-        InfoViewer viewer = null;
-        if(arg.getViewer() != null) {
+        MpdControlSurface surface = null;
+        if(arg.getSurface() != null) {
             try {
                 @SuppressWarnings("unchecked")
-                Class<InfoViewer> viewerClass = (Class<InfoViewer>) Class.forName(arg.getViewer());
-                viewer = viewerClass.getDeclaredConstructor().newInstance();
+                Class<MpdControlSurface> surfaceClass = (Class<MpdControlSurface>) Class.forName(arg.getSurface());
+                surface = surfaceClass.getDeclaredConstructor().newInstance();
             } catch (Exception e) {
-                throw new IllegalArgumentException(format("Loading viewer class ''{0}'' failed", arg.getViewer()));
+                throw new IllegalArgumentException(format("Loading surface class ''{0}'' failed", arg.getSurface()));
             }  
         } else {
-            viewer = new SwingInfoViewer();
+            surface = new SwingControlSurface();
         }
-        client.setViewer(viewer);
+        client.setSurface(surface);
     }
     
     private MPD mpd;
-    private InfoViewer viewer;
+    private MpdControlSurface surface;
     private String musicPath;
     private Player player;
     private MusicDatabase musicDatabase;
@@ -76,13 +76,13 @@ public class MpdClient {
         this.musicDatabase = mpd.getMusicDatabase();
         this.playlist = mpd.getPlaylist();
         
-        viewer = new InfoViewer() {};
+        surface = new MpdControlSurface() {};
         setupListeners();
         initState();
     }
 
-    public void setViewer(InfoViewer viewer) {
-        this.viewer = viewer;
+    public void setSurface(MpdControlSurface surface) {
+        this.surface = surface;
         initState();
     }
     
@@ -97,15 +97,15 @@ public class MpdClient {
             switch (event.getStatus()) {
             case PLAYER_STARTED:
             case PLAYER_UNPAUSED:
-                viewer.playbackStarted();
+                surface.playbackStarted();
                 break;
                 
             case PLAYER_PAUSED:
-                viewer.playbackPaused();
+                surface.playbackPaused();
                 break;
                 
             case PLAYER_STOPPED:
-                viewer.playbackStopped();
+                surface.playbackStopped();
                 break;
 
             default:
@@ -116,7 +116,7 @@ public class MpdClient {
             switch (event.getEvent()) {
             case SONG_CHANGED:
                 mpd.getPlayer().getCurrentSong().ifPresent((song) -> {
-                    viewer.songChanged(song);
+                    surface.songChanged(song);
                 });
                 break;
 
@@ -125,7 +125,7 @@ public class MpdClient {
             }
         });
         monitor.addTrackPositionChangeListener((event) -> {
-            viewer.timeElapsed(event.getElapsedTime());
+            surface.timeElapsed(event.getElapsedTime());
         });
         monitor.start();
     }
@@ -133,29 +133,29 @@ public class MpdClient {
     private void initState() {
         
         // Inject properties
-        viewer.setMusicPath(musicPath);
-        viewer.setPlayer(player);
-        viewer.setMusicDatabase(musicDatabase);
-        viewer.setPlaylist(playlist);
+        surface.setMusicPath(musicPath);
+        surface.setPlayer(player);
+        surface.setMusicDatabase(musicDatabase);
+        surface.setPlaylist(playlist);
         
         // Set song
         if(mpd.getPlaylist().getCurrentSong() != null) {
-            viewer.songChanged(mpd.getPlaylist().getCurrentSong());
+            surface.songChanged(mpd.getPlaylist().getCurrentSong());
         }
         
         // Set playback status
         Status status = mpd.getPlayer().getStatus();
         switch (status) {
         case STATUS_PLAYING:
-            viewer.playbackStarted();
+            surface.playbackStarted();
             break;
             
         case STATUS_PAUSED:
-            viewer.playbackPaused();
+            surface.playbackPaused();
             break;
             
         case STATUS_STOPPED:
-            viewer.playbackStopped();
+            surface.playbackStopped();
             break;
 
         default:

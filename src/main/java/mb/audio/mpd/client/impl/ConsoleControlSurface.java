@@ -4,9 +4,9 @@ import static java.text.MessageFormat.format;
 
 import org.bff.javampd.playlist.MPDPlaylistSong;
 
-import mb.audio.mpd.client.InfoViewer;
+import mb.audio.mpd.client.MpdControlSurface;
 
-public class ConsoleInfoViewer extends InfoViewer {
+public class ConsoleControlSurface extends MpdControlSurface {
 
     @Override
     public void songChanged(MPDPlaylistSong song) {

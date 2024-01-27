@@ -44,14 +44,14 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.sun.source.tree.WhileLoopTree;
 import java.awt.GridLayout;
 import mb.audio.mpd.client.GlobalConfig;
-import mb.audio.mpd.client.InfoViewer;
+import mb.audio.mpd.client.MpdControlSurface;
 import mb.audio.mpd.client.impl.AlbumListModel.Album;
 import mb.audio.mpd.client.util.SwingGraphicsUtils;
 import net.miginfocom.swing.MigLayout;
 
-public class SwingInfoViewer extends InfoViewer {
+public class SwingControlSurface extends MpdControlSurface {
     
-    private static final Logger LOG = Logger.getLogger(SwingInfoViewer.class.getName());
+    private static final Logger LOG = Logger.getLogger(SwingControlSurface.class.getName());
     private static final int SMALL_ICON_RATIO = 20;
     private static final String SONG_PANEL_ID = "Playback Panel";
     private static final String LIBRARY_PANEL_ID = "Library Panel";
@@ -68,7 +68,7 @@ public class SwingInfoViewer extends InfoViewer {
     private Timer playButtonBlinkTimer, timePollTimer;
     private long elapsedTimeCounter;
     
-    public SwingInfoViewer() {
+    public SwingControlSurface() {
         
         // Custom LaF
         FlatDarkLaf.setup();

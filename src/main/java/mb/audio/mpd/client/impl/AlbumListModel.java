@@ -97,7 +97,7 @@ public class AlbumListModel extends AbstractListModel<Album> {
             MPDSong firstAlbumSong = mdb.getSongDatabase().findAlbum(albumName)
                     .stream().findFirst().orElse(null);
             if (firstAlbumSong != null) {
-                BufferedImage image = SwingInfoViewer.fetchArtwork(musicPath, firstAlbumSong);
+                BufferedImage image = SwingControlSurface.fetchArtwork(musicPath, firstAlbumSong);
                 if(image != null) {
                     icon = new ImageIcon(image.getScaledInstance(
                             ALBUM_ICON_SIZE, ALBUM_ICON_SIZE, Image.SCALE_SMOOTH));

@@ -16,8 +16,8 @@ public class Args {
     @Parameter(names = "--musicpath")
     private String musicPath;
     
-    @Parameter(names = "--viewer")
-    private String viewer;
+    @Parameter(names = "--surface")
+    private String surface;
     
     @Parameter(names = "--touchscreen")
     private boolean touchscreen;
@@ -54,12 +54,12 @@ public class Args {
         this.musicPath = musicPath;
     }
 
-    public String getViewer() {
-        return viewer;
+    public String getSurface() {
+        return surface;
     }
 
-    public void setViewer(String viewer) {
-        this.viewer = viewer;
+    public void setSurface(String surface) {
+        this.surface = surface;
     }
 
     public boolean isTouchscreen() {

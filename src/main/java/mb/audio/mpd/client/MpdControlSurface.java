@@ -5,7 +5,7 @@ import org.bff.javampd.player.Player;
 import org.bff.javampd.playlist.MPDPlaylistSong;
 import org.bff.javampd.playlist.Playlist;
 
-public abstract class InfoViewer {
+public abstract class MpdControlSurface {
     
     protected String musicPath;
     protected Player player;
