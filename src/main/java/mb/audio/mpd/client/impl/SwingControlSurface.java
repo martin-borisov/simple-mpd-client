@@ -160,6 +160,7 @@ public class SwingControlSurface extends MpdControlSurface {
         switchPanel.add(songPanel, SONG_PANEL_ID);
         
         // Canvas
+        // TODO Investigate why some image types are not drawn
         imageCanvas = new Canvas() {
             private static final long serialVersionUID = 1L;
             
@@ -423,8 +424,7 @@ public class SwingControlSurface extends MpdControlSurface {
         path = path.substring(0, path.lastIndexOf('/') + 1); 
         
         BufferedImage image = null;
-        try {
-            InputStream is = ArtworkRetriever.fetchArtwork(path);
+        try(InputStream is = ArtworkRetriever.fetchArtwork(path)) {
             image = ImageIO.read(is);
         } catch (Exception e) {
             LOG.log(Level.FINE, e.getMessage(), e);

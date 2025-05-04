@@ -28,7 +28,12 @@ import mb.audio.mpd.client.impl.AlbumListModel.Album;
 public class AlbumListModel extends AbstractListModel<Album> {
     private static final Logger LOG = Logger.getLogger(AlbumListModel.class.getName());
     private static final long serialVersionUID = 1L;
-    public static final int ALBUM_ICON_SIZE = 100;
+    
+    // Default configuration
+    public static final boolean LOAD_ALBUM_ART = true;
+    public static final int ALBUM_ICON_SIZE = 50;
+    public static final int ALBUM_ICON_SCALING_ALG = Image.SCALE_SMOOTH;
+    
     public static final Icon DEFAULT_ALBUM_ICON = 
             FontIcon.of(FontAwesomeSolid.QUESTION, ALBUM_ICON_SIZE, Color.GRAY);
     
@@ -87,8 +92,8 @@ public class AlbumListModel extends AbstractListModel<Album> {
     }
 
     private Icon fetchAlbumArt(String albumName) {
-        Icon icon = null;
-        if (mdb != null && musicPath != null) {
+        Icon icon = DEFAULT_ALBUM_ICON;
+        if (mdb != null && musicPath != null && LOAD_ALBUM_ART) {
             
             // Escape album name to prevent API errors
             albumName = albumName.replace("\"", "");
@@ -100,12 +105,8 @@ public class AlbumListModel extends AbstractListModel<Album> {
                 BufferedImage image = SwingControlSurface.fetchArtwork(musicPath, firstAlbumSong);
                 if(image != null) {
                     icon = new ImageIcon(image.getScaledInstance(
-                            ALBUM_ICON_SIZE, ALBUM_ICON_SIZE, Image.SCALE_SMOOTH));
-                } else {
-                    icon = DEFAULT_ALBUM_ICON;
+                            ALBUM_ICON_SIZE, ALBUM_ICON_SIZE, ALBUM_ICON_SCALING_ALG));
                 }
-            } else {
-                icon = DEFAULT_ALBUM_ICON;
             }
         }
         return icon;
