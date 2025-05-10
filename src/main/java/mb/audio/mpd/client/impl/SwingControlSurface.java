@@ -8,16 +8,15 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
-import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -40,7 +39,7 @@ import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.swing.FontIcon;
 
 import com.formdev.flatlaf.FlatDarkLaf;
-import java.awt.GridLayout;
+
 import mb.audio.mpd.client.GlobalConfig;
 import mb.audio.mpd.client.MpdControlSurface;
 import mb.audio.mpd.client.impl.AlbumListModel.Album;
@@ -61,7 +60,7 @@ public class SwingControlSurface extends MpdControlSurface {
     private JSlider timeSlider;
     private JButton playButton, prevButton, nextButton, panelSwitchButton;
     private JList<AlbumListModel.Album> albumList;
-    private BufferedImage artwork;
+    private Image artwork;
     private FontIcon icon;
     private Timer playButtonBlinkTimer, timePollTimer;
     private long elapsedTimeCounter;
@@ -127,7 +126,16 @@ public class SwingControlSurface extends MpdControlSurface {
                 song.getAlbumName() != null ? song.getAlbumName() : UNKNOWN);
         
         // Update image
-        artwork = fetchArtwork(musicPath, song);
+        try {
+            artwork = ArtworkRetriever.getInstance().fetchArtworkDirect(
+                    buildArtworkPath(musicPath, song));
+        } catch (ArtworkNotFoundException e) {
+            LOG.log(Level.INFO, "Artwork not found at base path ''{0}'' for song ''{1}''", 
+                    new Object[] {musicPath, song.getFile()});
+        } catch (ArtworkRetrieverException e) {
+            LOG.log(Level.WARNING, "Error getting artwork at base path ''{0}'' for song ''{1}''", 
+                    new Object[] {musicPath, song.getFile()});
+        }
         SwingUtilities.invokeLater(() -> repaintArtworkImage());
         
         // Reset and update song time
@@ -168,7 +176,7 @@ public class SwingControlSurface extends MpdControlSurface {
             public void paint(Graphics g) {
                 if(artwork != null) {
                     
-                    int sizeFactor = artwork.getHeight() / artwork.getWidth();
+                    int sizeFactor = artwork.getHeight(null) / artwork.getWidth(null);
                     if(getHeight() > getWidth()) {
                         int scaledHeight = getWidth() * sizeFactor;
                         g.drawImage(artwork, 0, getHeight() / 2 - scaledHeight / 2, getWidth(), scaledHeight, null);
@@ -322,12 +330,28 @@ public class SwingControlSurface extends MpdControlSurface {
                 updateIcons();
             }
         });
+        
+        /*
+        frame.addWindowStateListener(new WindowStateListener() {
+            public void windowStateChanged(WindowEvent e) {
+                if(Frame.MAXIMIZED_BOTH == e.getOldState()) {
+                    updateIcons();
+                }
+            }
+        });
+        */
     }
     
     private void updateIcons() {
         
         // Prev
         ((FontIcon) prevButton.getIcon()).setIconSize(frame.getWidth() / SMALL_ICON_RATIO);
+        
+        // NB: The invalidate call here ensures that the buttons are properly
+        // resized when the frame is maximized or normalized. There is a potential bug 
+        // which prevents the buttons to be auto-resized when maximizing/normalizing and
+        // changing the icon size.
+        prevButton.invalidate();
         
         // Play
         icon.setIconSize(frame.getWidth() / SMALL_ICON_RATIO);
@@ -358,8 +382,12 @@ public class SwingControlSurface extends MpdControlSurface {
     private void createPlayButtonBlinkTimer() {
         playButtonBlinkTimer = new Timer(100, (event) -> {
             Color col = icon.getIconColor();
-            col = new Color(col.getRed(), col.getGreen(), col.getBlue(),
-                    col.getAlpha() < 255 ? Math.min(col.getAlpha() + 25, 255) : 0);
+            
+            // NB: We assume pure green and pure black icons
+            col = new Color(col.getRed(), 
+                    col.getGreen() < 255 ? Math.min(col.getGreen() + 25, 255) : 0, 
+                    col.getBlue());
+            
             icon.setIconColor(col);
             playButton.repaint();
         });
@@ -418,17 +446,8 @@ public class SwingControlSurface extends MpdControlSurface {
     
     /* Utils */
     
-    public static BufferedImage fetchArtwork(String musicPath, MPDSong song) {
-        
+    public static String buildArtworkPath(String musicPath, MPDSong song) {
         String path = musicPath + "/" + song.getFile();
-        path = path.substring(0, path.lastIndexOf('/') + 1); 
-        
-        BufferedImage image = null;
-        try(InputStream is = ArtworkRetriever.fetchArtwork(path)) {
-            image = ImageIO.read(is);
-        } catch (Exception e) {
-            LOG.log(Level.FINE, e.getMessage(), e);
-        }
-        return image;
+        return path.substring(0, path.lastIndexOf('/') + 1);
     }
 }

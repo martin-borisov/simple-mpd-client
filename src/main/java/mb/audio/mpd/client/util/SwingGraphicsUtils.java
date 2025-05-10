@@ -97,7 +97,7 @@ public class SwingGraphicsUtils {
      */
     public static void resizeLabel(JLabel label) {
         int maxFittingFontSize = SwingGraphicsUtils.getMaxFittingFontSize(label.getGraphics(),
-                label.getFont(), label.getText(), (int) (label.getHeight() / 3));
+                label.getFont(), label.getText(), (int) (label.getHeight() / 4));
         label.setFont(new Font(label.getFont().getName(), label.getFont().getStyle(), maxFittingFontSize));
     }
     

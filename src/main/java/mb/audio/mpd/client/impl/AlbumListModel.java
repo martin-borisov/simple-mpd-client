@@ -2,7 +2,6 @@ package mb.audio.mpd.client.impl;
 
 import java.awt.Color;
 import java.awt.Image;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,7 +15,6 @@ import java.util.stream.Collectors;
 
 import javax.swing.AbstractListModel;
 import javax.swing.Icon;
-import javax.swing.ImageIcon;
 
 import org.bff.javampd.database.MusicDatabase;
 import org.bff.javampd.song.MPDSong;
@@ -92,7 +90,7 @@ public class AlbumListModel extends AbstractListModel<Album> {
     }
 
     private Icon fetchAlbumArt(String albumName) {
-        Icon icon = DEFAULT_ALBUM_ICON;
+        AlbumIcon icon = null;
         if (mdb != null && musicPath != null && LOAD_ALBUM_ART) {
             
             // Escape album name to prevent API errors
@@ -102,11 +100,8 @@ public class AlbumListModel extends AbstractListModel<Album> {
             MPDSong firstAlbumSong = mdb.getSongDatabase().findAlbum(albumName)
                     .stream().findFirst().orElse(null);
             if (firstAlbumSong != null) {
-                BufferedImage image = SwingControlSurface.fetchArtwork(musicPath, firstAlbumSong);
-                if(image != null) {
-                    icon = new ImageIcon(image.getScaledInstance(
-                            ALBUM_ICON_SIZE, ALBUM_ICON_SIZE, ALBUM_ICON_SCALING_ALG));
-                }
+                icon = new AlbumIcon(SwingControlSurface.buildArtworkPath(
+                        musicPath, firstAlbumSong), DEFAULT_ALBUM_ICON);
             }
         }
         return icon;
@@ -136,11 +131,13 @@ public class AlbumListModel extends AbstractListModel<Album> {
                         fireContentsChanged(this, idx, idx);
                     }
                 } catch (Exception e) {
-                    LOG.log(Level.WARNING, "Exception while fetching album ''{0}'' metadata");
+                    LOG.log(Level.WARNING, "Exception while fetching album metadata", e);
                     continue;
                 }
             }
         });
+        
+        
         thread.setDaemon(true);
         thread.start();
     }
