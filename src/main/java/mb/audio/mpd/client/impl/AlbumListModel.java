@@ -2,11 +2,7 @@ package mb.audio.mpd.client.impl;
 
 import java.awt.Color;
 import java.awt.Image;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
@@ -37,12 +33,10 @@ public class AlbumListModel extends AbstractListModel<Album> {
     
     private MusicDatabase mdb;
     private String musicPath;
-    private List<String> albumNamesCache;
-    private Map<Integer, Album> albumsCache;
+    private List<Album> albumCache, filteredAlbumsList;
     private BlockingQueue<Album> albumBlockingQueue;
     
     public AlbumListModel() {
-        albumsCache = Collections.synchronizedMap(new HashMap<Integer, Album>());
         albumBlockingQueue = new LinkedBlockingQueue<Album>();
         startAlbumMetadataRetrivalThread();
     }
@@ -50,43 +44,61 @@ public class AlbumListModel extends AbstractListModel<Album> {
     @Override
     public int getSize() {
         int size = 0;
-        if(albumNamesCache != null) {
-            size = albumNamesCache.size();
-        } else if(mdb != null) {
-            
-            // Filter out zero length albums
-            albumNamesCache = new ArrayList<String>(
-                    mdb.getAlbumDatabase().listAllAlbumNames().stream()
-                        .filter(string -> string.length() > 0).collect(Collectors.toList()));
-            size = albumNamesCache.size();
+        if(filteredAlbumsList != null) {
+            size = filteredAlbumsList.size();
         }
         return size;
     }
 
     @Override
     public Album getElementAt(int index) {
-        Album album = null;
-        if(albumsCache.containsKey(index)) {
-            album = albumsCache.get(index);
-        } else if(albumNamesCache != null) {
-            String albumName = albumNamesCache.get(index);
-            album = new Album(albumName, DEFAULT_ALBUM_ICON);
-            albumsCache.put(index, album);
+        
+        // NB: getSize() is always called first so this is safe
+        return filteredAlbumsList.get(index);
+        
+        /*
+        Album album = filteredAlbumsList.get(index);
+        if(!album.isLoaded() && !albumBlockingQueue.contains(album)) {
             
             // Queue album for artwork fetch to be done by a worker
             albumBlockingQueue.offer(album);
         }
         return album;
+        */
     }
     
     public void setMusicDatabase(MusicDatabase mdb) {
         this.mdb = mdb;
+        initAlbumList();
         fireIntervalAdded(this, 0, getSize());
     }
     
     public void setMusicPath(String musicPath) {
         this.musicPath = musicPath;
         fireIntervalAdded(this, 0, getSize());
+    }
+    
+    public void filter(String genre) {
+        if(genre == null || "".equals(genre)) {
+            filteredAlbumsList = albumCache;
+        } else {
+            filteredAlbumsList = albumCache.stream().filter(a -> genre.equalsIgnoreCase(a.getGenre()))
+                    .collect(Collectors.toList());
+        }
+        fireContentsChanged(this, 0, albumCache.size());
+    }
+    
+    private void initAlbumList() {
+        if (mdb != null) {
+            
+            // Filter out zero length album names
+            albumCache = mdb.getAlbumDatabase().listAllAlbumNames().stream().filter(string -> string.length() > 0)
+                    .map(string -> new Album(string, DEFAULT_ALBUM_ICON)).collect(Collectors.toList());
+            filteredAlbumsList = albumCache;
+            
+            // Queue all albums for data retrieval
+            albumBlockingQueue.addAll(albumCache);
+        }
     }
 
     private Icon fetchAlbumArt(String albumName) {
@@ -122,9 +134,11 @@ public class AlbumListModel extends AbstractListModel<Album> {
                     
                     LOG.log(Level.FINE, "Fetching album art of album ''{0}''", album.getName());
                     album.setIcon(fetchAlbumArt(album.getName()));
+                    album.setLoaded(true);
                     
                     LOG.log(Level.FINE, "Trying to refresh list item ''{0}''", album.getName());
-                    int idx = albumNamesCache.indexOf(album.getName());
+                    // int idx = albumNamesCache.indexOf(album.getName());
+                    int idx = albumCache.indexOf(album);
                     if(idx > -1) {
                         LOG.log(Level.FINE, "List item ''{0}'' found in album names cache with index {1}", 
                                 new Object[] {album.getName(), idx});
@@ -146,7 +160,12 @@ public class AlbumListModel extends AbstractListModel<Album> {
         
         private String name, artist, year, genre;
         private Icon icon;
+        private boolean loaded;
         
+        public Album(String name) {
+            this(name, null);
+        }
+
         public Album(String name, Icon icon) {
             this.name = name;
             this.icon = icon;
@@ -200,6 +219,14 @@ public class AlbumListModel extends AbstractListModel<Album> {
 
         public void setGenre(String genre) {
             this.genre = genre;
+        }
+
+        public boolean isLoaded() {
+            return loaded;
+        }
+
+        public void setLoaded(boolean loaded) {
+            this.loaded = loaded;
         }
     }
 }

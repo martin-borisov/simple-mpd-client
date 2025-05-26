@@ -25,6 +25,7 @@ public class MpdClient {
         
         // Set global config
         GlobalConfig.setTouchscreen(arg.isTouchscreen());
+        GlobalConfig.setHighcontrast(arg.isHighcontrast());
         
         // Create client
         MpdClient client;

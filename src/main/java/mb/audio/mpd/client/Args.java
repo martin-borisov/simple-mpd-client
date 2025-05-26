@@ -21,6 +21,9 @@ public class Args {
     
     @Parameter(names = "--touchscreen")
     private boolean touchscreen;
+    
+    @Parameter(names = "--highcontrast")
+    private boolean highcontrast;
 
     public String getHost() {
         return host;
@@ -68,5 +71,13 @@ public class Args {
 
     public void setTouchscreen(boolean touchscreen) {
         this.touchscreen = touchscreen;
+    }
+
+    public boolean isHighcontrast() {
+        return highcontrast;
+    }
+
+    public void setHighcontrast(boolean highcontrast) {
+        this.highcontrast = highcontrast;
     }
 }

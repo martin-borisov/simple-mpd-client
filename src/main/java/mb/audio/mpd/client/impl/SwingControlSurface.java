@@ -12,12 +12,18 @@ import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -27,11 +33,13 @@ import javax.swing.JSeparator;
 import javax.swing.JSlider;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 
 import org.bff.javampd.database.MusicDatabase;
+import org.bff.javampd.genre.MPDGenre;
 import org.bff.javampd.player.Player.Status;
 import org.bff.javampd.playlist.MPDPlaylistSong;
 import org.bff.javampd.song.MPDSong;
@@ -39,6 +47,7 @@ import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.swing.FontIcon;
 
 import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.intellijthemes.FlatHighContrastIJTheme;
 
 import mb.audio.mpd.client.GlobalConfig;
 import mb.audio.mpd.client.MpdControlSurface;
@@ -53,6 +62,8 @@ public class SwingControlSurface extends MpdControlSurface {
     private static final String SONG_PANEL_ID = "Playback Panel";
     private static final String LIBRARY_PANEL_ID = "Library Panel";
     private static final String UNKNOWN = "Unknown";
+    private static final Color DEFAULT_ICON_COLOR = 
+            GlobalConfig.isHighcontrast() ? Color.WHITE : Color.BLACK;
     
     private JFrame frame;
     private Canvas imageCanvas;
@@ -60,6 +71,7 @@ public class SwingControlSurface extends MpdControlSurface {
     private JSlider timeSlider;
     private JButton playButton, prevButton, nextButton, panelSwitchButton;
     private JList<AlbumListModel.Album> albumList;
+    private JComboBox<MPDGenre> genreComboBox;
     private Image artwork;
     private FontIcon icon;
     private Timer playButtonBlinkTimer, timePollTimer;
@@ -68,7 +80,12 @@ public class SwingControlSurface extends MpdControlSurface {
     public SwingControlSurface() {
         
         // Custom LaF
-        FlatDarkLaf.setup();
+        if(GlobalConfig.isHighcontrast()) {
+            FlatHighContrastIJTheme.setup();
+            UIManager.put("Component.focusWidth", 0);
+        } else {
+            FlatDarkLaf.setup();
+        }
         UIManager.put("Button.arc", 999);
         
         if(GlobalConfig.isTouchscreen()) {
@@ -88,6 +105,41 @@ public class SwingControlSurface extends MpdControlSurface {
     public void setMusicDatabase(MusicDatabase musicDatabase) {
         super.setMusicDatabase(musicDatabase);
         ((AlbumListModel) albumList.getModel()).setMusicDatabase(musicDatabase);
+        
+        // Load genres asynchronously
+        new SwingWorker<Collection<MPDGenre>, Void>() {
+            protected Collection<MPDGenre> doInBackground() throws Exception {
+                Collection<MPDGenre> genres = Collections.emptyList();
+                if(mdb != null) {
+                    genres =  mdb.getGenreDatabase().listAllGenres();
+                }
+                return genres;
+            }
+            
+            @SuppressWarnings({ "unchecked", "rawtypes" })
+            protected void done() {
+                
+                Collection<MPDGenre> genres;
+                try {
+                    genres = get();
+                } catch (Exception e) {
+                    LOG.log(Level.SEVERE, "Error fetching genres from music database", e);
+                    return;
+                }
+                
+                // Make sure genres list contains an empty genre, i.e. a substitute for "All Genres"
+                MPDGenre emptyGenre = genres.stream()
+                        .filter(genre -> "".equals(genre.getName()))
+                        .findFirst()
+                        .orElseGet(() -> {
+                            MPDGenre genre = new MPDGenre("");
+                            ((DefaultComboBoxModel) genreComboBox.getModel()).insertElementAt(genres, 0);
+                            return genre;
+                        });
+                ((DefaultComboBoxModel) genreComboBox.getModel()).addAll(genres);
+                ((DefaultComboBoxModel) genreComboBox.getModel()).setSelectedItem(emptyGenre);
+            }
+        }.execute();
     }
 
     @Override
@@ -100,7 +152,7 @@ public class SwingControlSurface extends MpdControlSurface {
 
     @Override
     public void playbackPaused() {
-        icon = FontIcon.of(FontAwesomeSolid.PLAY, Color.BLACK);
+        icon = FontIcon.of(FontAwesomeSolid.PLAY, DEFAULT_ICON_COLOR);
         updateIcons();
         stopPlayButtonBlink();
         stopElapsedTimePoll();
@@ -108,7 +160,7 @@ public class SwingControlSurface extends MpdControlSurface {
 
     @Override
     public void playbackStopped() {
-        icon = FontIcon.of(FontAwesomeSolid.STOP);
+        icon = FontIcon.of(FontAwesomeSolid.STOP, DEFAULT_ICON_COLOR);
         updateIcons();
         stopPlayButtonBlink();
         stopElapsedTimePoll();
@@ -215,9 +267,19 @@ public class SwingControlSurface extends MpdControlSurface {
         /* Library panel */
         JPanel libraryPanel = new JPanel(new MigLayout(
                 "insets 0, fill, wrap", 
-                GlobalConfig.isTouchscreen() ? "[fill, 90%][fill, 20%]" : "[fill]", "[fill, 100%]"));
+                GlobalConfig.isTouchscreen() ? "[fill, 90%][fill, 20%]" : "[fill]", "[fill][fill, 100%]"));
         switchPanel.add(libraryPanel, LIBRARY_PANEL_ID);
         
+        // Genre panel
+        genreComboBox = new JComboBox<>();
+        genreComboBox.setRenderer(new GenreListCellRenderer());
+        
+        JPanel genrePanel = new JPanel(new MigLayout("insets 0, fill", "[fill][fill, 100%]", "[]"));
+        genrePanel.add(new JLabel("Genre"));
+        genrePanel.add(genreComboBox);
+        libraryPanel.add(genrePanel, GlobalConfig.isTouchscreen() ? "spanx" : ""); // NB: Needed for proper layout in fullscreen
+        
+        // Album list
         albumList = new JList<AlbumListModel.Album>(new AlbumListModel());
         albumList.setCellRenderer(new AlbumListCellRenderer());
         albumList.addMouseListener(new MouseAdapter() {
@@ -237,7 +299,7 @@ public class SwingControlSurface extends MpdControlSurface {
             libraryPanel.add(scrollButtonsPanel);
             
             JButton upButton = SwingGraphicsUtils.createButtonWithResizableIcon(
-                    FontIcon.of(FontAwesomeSolid.ARROW_UP));
+                    FontIcon.of(FontAwesomeSolid.ARROW_UP, DEFAULT_ICON_COLOR));
             upButton.putClientProperty("JButton.buttonType", "square");
             SwingGraphicsUtils.makeButtonHoldable(upButton, () -> {
                 albumList.ensureIndexIsVisible(albumList.getFirstVisibleIndex() - 1);
@@ -245,7 +307,7 @@ public class SwingControlSurface extends MpdControlSurface {
             scrollButtonsPanel.add(upButton);
             
             JButton downButton = SwingGraphicsUtils.createButtonWithResizableIcon(
-                    FontIcon.of(FontAwesomeSolid.ARROW_DOWN));
+                    FontIcon.of(FontAwesomeSolid.ARROW_DOWN, DEFAULT_ICON_COLOR));
             downButton.putClientProperty("JButton.buttonType", "square");
             SwingGraphicsUtils.makeButtonHoldable(downButton, () -> {
                 albumList.ensureIndexIsVisible(albumList.getLastVisibleIndex() + 1);
@@ -273,10 +335,10 @@ public class SwingControlSurface extends MpdControlSurface {
                 "insets 0, fill", "[fill, 10%][3%, align center][fill, 29%][fill, 29%][fill, 29%]", "[fill]"));
         rootPanel.add(buttonsPanel);
         
-        panelSwitchButton = new JButton(FontIcon.of(FontAwesomeSolid.LIST));
+        panelSwitchButton = new JButton(FontIcon.of(FontAwesomeSolid.LIST, DEFAULT_ICON_COLOR));
         panelSwitchButton.addActionListener(e -> {
             panelSwitchButton.setIcon(FontIcon.of(
-                    songPanel.isShowing() ? FontAwesomeSolid.ARROW_LEFT : FontAwesomeSolid.LIST));
+                    songPanel.isShowing() ? FontAwesomeSolid.ARROW_LEFT : FontAwesomeSolid.LIST, DEFAULT_ICON_COLOR));
             updateIcons();
             ((CardLayout) switchPanel.getLayout()).show(switchPanel, 
                     songPanel.isShowing() ? LIBRARY_PANEL_ID : SONG_PANEL_ID);
@@ -284,17 +346,17 @@ public class SwingControlSurface extends MpdControlSurface {
         buttonsPanel.add(panelSwitchButton);
         
         buttonsPanel.add(new JSeparator(SwingConstants.VERTICAL));
-        
-        prevButton = new JButton(FontIcon.of(FontAwesomeSolid.FAST_BACKWARD));
+
+        prevButton = new JButton(FontIcon.of(FontAwesomeSolid.FAST_BACKWARD, DEFAULT_ICON_COLOR));
         prevButton.addActionListener(e -> player.playPrevious());
         buttonsPanel.add(prevButton);
         
-        playButton = new JButton(icon = FontIcon.of(FontAwesomeSolid.PLAY));
+        playButton = new JButton(icon = FontIcon.of(FontAwesomeSolid.PLAY, DEFAULT_ICON_COLOR));
         playButton.addActionListener(e -> togglePlayback());
         buttonsPanel.add(playButton);
         createPlayButtonBlinkTimer();
         
-        nextButton = new JButton(FontIcon.of(FontAwesomeSolid.FAST_FORWARD));
+        nextButton = new JButton(FontIcon.of(FontAwesomeSolid.FAST_FORWARD, DEFAULT_ICON_COLOR));
         nextButton.addActionListener(e -> player.playNext());
         buttonsPanel.add(nextButton);
         
@@ -307,7 +369,7 @@ public class SwingControlSurface extends MpdControlSurface {
         // Full screen, Linux only
         if(GlobalConfig.isTouchscreen()) {
         
-            // MAximize and remove windows frame
+            // Maximize and remove windows frame
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH); 
             frame.setUndecorated(true);
         
@@ -330,16 +392,13 @@ public class SwingControlSurface extends MpdControlSurface {
                 updateIcons();
             }
         });
-        
-        /*
-        frame.addWindowStateListener(new WindowStateListener() {
-            public void windowStateChanged(WindowEvent e) {
-                if(Frame.MAXIMIZED_BOTH == e.getOldState()) {
-                    updateIcons();
+        genreComboBox.addItemListener(new ItemListener() {
+            public void itemStateChanged(ItemEvent e) {
+                if(e.getStateChange() == ItemEvent.SELECTED) {
+                    ((AlbumListModel) albumList.getModel()).filter(((MPDGenre) e.getItem()).getName());
                 }
             }
         });
-        */
     }
     
     private void updateIcons() {
@@ -383,10 +442,14 @@ public class SwingControlSurface extends MpdControlSurface {
         playButtonBlinkTimer = new Timer(100, (event) -> {
             Color col = icon.getIconColor();
             
-            // NB: We assume pure green and pure black icons
-            col = new Color(col.getRed(), 
-                    col.getGreen() < 255 ? Math.min(col.getGreen() + 25, 255) : 0, 
-                    col.getBlue());
+            if(Color.BLACK.equals(DEFAULT_ICON_COLOR)) {
+                col = new Color(col.getRed(), col.getGreen() < 255 ? Math.min(col.getGreen() + 25, 255) : 0,
+                        col.getBlue());
+            } else if(Color.WHITE.equals(DEFAULT_ICON_COLOR)){
+
+                col = new Color(col.getRed() > 0 ? Math.max(col.getRed() - 25, 0) : 255, 255,
+                        col.getBlue() > 0 ? Math.max(col.getBlue() - 25, 0) : 255);
+            }
             
             icon.setIconColor(col);
             playButton.repaint();
@@ -445,7 +508,7 @@ public class SwingControlSurface extends MpdControlSurface {
     }
     
     /* Utils */
-    
+       
     public static String buildArtworkPath(String musicPath, MPDSong song) {
         String path = musicPath + "/" + song.getFile();
         return path.substring(0, path.lastIndexOf('/') + 1);
